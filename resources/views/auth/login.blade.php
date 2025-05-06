@@ -2,7 +2,10 @@
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    <form method="POST" action="{{ route('login') }}">
+    <!-- API Login feedback -->
+    <div id="api-login-feedback" class="mb-4 text-sm text-red-600" style="display: none;"></div>
+
+    <form id="api-login-form" method="POST" action="{{ route('login') }}">
         @csrf
 
         <!-- Email Address -->
@@ -48,4 +51,53 @@
     <div class="py-2 text-gray-600 dark:text-gray-400">
         {{ __('Create an account?') }} <a class="underline" href="{{ route('register') }}">{{ __('Register') }}</a>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('api-login-form');
+        const feedback = document.getElementById('api-login-feedback');
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            feedback.style.display = 'none';
+            feedback.textContent = '';
+            const email = form.email.value;
+            const password = form.password.value;
+            const remember = form.remember.checked;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        remember
+                    }),
+                    credentials: 'same-origin'
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    feedback.style.display = 'block';
+                    feedback.style.color = 'green';
+                    feedback.textContent = data.message || 'Login successful! Redirecting...';
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 800);
+                } else {
+                    feedback.style.display = 'block';
+                    feedback.style.color = 'red';
+                    feedback.textContent = data.message || 'Login failed';
+                }
+            } catch(err) {
+                feedback.style.display = 'block';
+                feedback.style.color = 'red';
+                feedback.textContent = 'An error occurred. Please try again.';
+            }
+        });
+    });
+    </script>
 </x-guest-layout>
