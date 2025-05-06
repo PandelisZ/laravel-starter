@@ -2,7 +2,10 @@
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    <form method="POST" action="{{ route('login') }}">
+    <!-- API Login Error/Status -->
+    <div id="api-login-message" class="mb-4 text-sm"></div>
+
+    <form id="api-login-form" method="POST" action="{{ route('login') }}">
         @csrf
 
         <!-- Email Address -->
@@ -48,4 +51,49 @@
     <div class="py-2 text-gray-600 dark:text-gray-400">
         {{ __('Create an account?') }} <a class="underline" href="{{ route('register') }}">{{ __('Register') }}</a>
     </div>
+
+    <!-- API Login Script -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("api-login-form");
+        const apiMsg = document.getElementById("api-login-message");
+
+        form.addEventListener("submit", function (e) {
+            // Use JS/XHR if JavaScript is enabled
+            e.preventDefault();
+            apiMsg.textContent = "";
+            apiMsg.className = "mb-4 text-sm";
+
+            const email = form.email.value;
+            const password = form.password.value;
+            const remember = form.remember.checked;
+
+            fetch("/api/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": document.querySelector('input[name="_token"]').value
+                },
+                body: JSON.stringify({ email, password, remember_me: remember })
+            })
+            .then(async response => {
+                const data = await response.json();
+                if (response.ok) {
+                    apiMsg.textContent = data.message || "Login successful, redirecting...";
+                    apiMsg.className += " text-green-600 dark:text-green-400";
+                    setTimeout(() => {
+                        window.location.href = "/dashboard";
+                    }, 700);
+                } else {
+                    apiMsg.textContent = data.message || "Login failed.";
+                    apiMsg.className += " text-red-600 dark:text-red-400";
+                }
+            })
+            .catch(() => {
+                apiMsg.textContent = "Network error. Please try again.";
+                apiMsg.className += " text-red-600 dark:text-red-400";
+            });
+        });
+    });
+    </script>
 </x-guest-layout>
